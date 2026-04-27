@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SnapOrganizer — Récupère tes Memories Snapchat</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg: #080808;
+  --surface: #111;
+  --surface2: #181818;
+  --border: #252525;
+  --yellow: #FFE500;
+  --yellow-dim: #1f1c00;
+  --text: #efefef;
+  --muted: #555;
+  --green: #00e676;
+  --red: #ff5252;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 1.5rem 3rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.4rem, 6vw, 3.5rem);
+  letter-spacing: -3px;
+  color: var(--yellow);
+  line-height: 1;
+}
+
+.logo span { color: var(--text); }
+
+.tagline {
+  margin-top: 0.6rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 520px;
+}
+
+/* DROP ZONE */
+.drop-zone {
+  position: relative;
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: var(--surface2);
+  overflow: hidden;
+}
+.drop-zone:hover, .drop-zone.over {
+  border-color: var(--yellow);
+  background: var(--yellow-dim);
+}
+.drop-zone input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.drop-icon { font-size: 2.8rem; margin-bottom: 0.8rem; display: block; }
+.drop-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  margin-bottom: 0.35rem;
+}
+.drop-sub { color: var(--muted); font-size: 0.83rem; }
+
+.file-badge {
+  margin-top: 0.8rem;
+  font-size: 0.83rem;
+  color: var(--yellow);
+  text-align: center;
+  display: none;
+}
+
+/* BUTTON */
+.btn {
+  display: block;
+  width: 100%;
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 14px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s;
+  margin-top: 1.2rem;
+  text-align: center;
+  text-decoration: none;
+}
+.btn-primary { background: var(--yellow); color: #000; }
+.btn-primary:hover { transform: scale(1.015); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.btn-green { background: var(--green); color: #000; }
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  margin-top: 0.6rem;
+}
+.btn-ghost:hover { color: var(--text); border-color: #444; }
+
+/* PROGRESS */
+.progress-section { display: none; margin-top: 1.8rem; }
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.83rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+.progress-track {
+  background: var(--surface2);
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--yellow);
+  border-radius: 999px;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+.steps {
+  margin-top: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  transition: color 0.3s;
+}
+.step.active { color: var(--text); }
+.step.done { color: var(--green); }
+.dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.step.active .dot { background: var(--yellow); }
+.step.done .dot { background: var(--green); }
+
+/* STATS */
+.result-section { display: none; margin-top: 1.8rem; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+  margin-bottom: 1.5rem;
+}
+.stat {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.1rem 0.5rem;
+  text-align: center;
+}
+.stat-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--yellow);
+  line-height: 1;
+}
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ERROR */
+.error-box {
+  display: none;
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  background: #180000;
+  border: 1px solid var(--red);
+  border-radius: 10px;
+  color: var(--red);
+  font-size: 0.84rem;
+}
+
+/* INFOS */
+.info-strip {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+  flex-wrap: wrap;
+}
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.info-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+
+footer {
+  margin-top: 3rem;
+  color: #333;
+  font-size: 0.78rem;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Snap<span>Organizer</span></div>
+  <p class="tagline">Tes memories. Triées. En 30 secondes.</p>
+</header>
+
+<div class="card">
+
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" accept=".zip">
+    <span class="drop-icon">📦</span>
+    <div class="drop-title">Dépose ton ZIP Snapchat ici</div>
+    <div class="drop-sub">Fichier téléchargé depuis accounts.snapchat.com</div>
+  </div>
+
+  <div class="file-badge" id="fileBadge"></div>
+
+  <button class="btn btn-primary" id="startBtn" onclick="startProcess()" disabled>
+    Organiser mes fichiers →
+  </button>
+
+  <div class="progress-section" id="progressSection">
+    <div class="progress-header">
+      <span id="progressLabel">Traitement en cours...</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="steps">
+      <div class="step" id="s1"><div class="dot"></div>Extraction du ZIP</div>
+      <div class="step" id="s2"><div class="dot"></div>Tri photos / vidéos</div>
+      <div class="step" id="s3"><div class="dot"></div>Renommage par date</div>
+      <div class="step" id="s4"><div class="dot"></div>Création de l'archive finale</div>
+    </div>
+  </div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="result-section" id="resultSection">
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num" id="statPhotos">0</div>
+        <div class="stat-label">Photos</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="statVideos">0</div>
+        <div class="stat-label">Vidéos</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="statTotal">0</div>
+        <div class="stat-label">Total</div>
+      </div>
+    </div>
+    <a class="btn btn-green" id="dlBtn" download="snapchat_organise.zip">
+      ⬇ Télécharger mes fichiers triés
+    </a>
+    <button class="btn btn-ghost" onclick="resetAll()">Recommencer</button>
+  </div>
+
+</div>
+
+<div class="info-strip">
+  <div class="info-item"><div class="info-dot"></div>100% gratuit</div>
+  <div class="info-item"><div class="info-dot"></div>Aucun fichier stocké</div>
+  <div class="info-item"><div class="info-dot"></div>Traitement instantané</div>
+</div>
+
+<footer>SnapOrganizer — Tes données restent privées</footer>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const dropZone  = document.getElementById('dropZone');
+const startBtn  = document.getElementById('startBtn');
+const fileBadge = document.getElementById('fileBadge');
+
+function setFile(file) {
+  if (!file || !file.name.endsWith('.zip')) return;
+  fileBadge.textContent = '📎 ' + file.name;
+  fileBadge.style.display = 'block';
+  startBtn.disabled = false;
+}
+
+fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f) {
+    const dt = new DataTransfer(); dt.items.add(f); fileInput.files = dt.files;
+    setFile(f);
+  }
+});
+
+function setStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('s' + i);
+    el.className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+}
+
+function setProgress(pct, label) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+  if (label) document.getElementById('progressLabel').textContent = label;
+}
+
+async function startProcess() {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  startBtn.disabled = true;
+  document.getElementById('progressSection').style.display = 'block';
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+
+  setStep(1); setProgress(10, 'Envoi du fichier...');
+
+  try {
+    setStep(2); setProgress(30, 'Tri en cours...');
+
+    const resp = await fetch('/api/organise', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/zip' },
+      body: file
+    });
+
+    setStep(3); setProgress(70, 'Renommage...');
+    await new Promise(r => setTimeout(r, 400));
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: 'Erreur inconnue' }));
+      throw new Error(err.error || 'Erreur serveur');
+    }
+
+    setStep(4); setProgress(90, 'Finalisation...');
+
+    const photos = parseInt(resp.headers.get('X-Photos') || 0);
+    const videos = parseInt(resp.headers.get('X-Videos') || 0);
+    const autres = parseInt(resp.headers.get('X-Autres') || 0);
+
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+
+    setProgress(100, 'Terminé !');
+    await new Promise(r => setTimeout(r, 500));
+
+    document.getElementById('statPhotos').textContent = photos;
+    document.getElementById('statVideos').textContent = videos;
+    document.getElementById('statTotal').textContent  = photos + videos + autres;
+    document.getElementById('dlBtn').href = url;
+
+    document.getElementById('resultSection').style.display = 'block';
+    document.getElementById('progressSection').style.display = 'none';
+
+  } catch(e) {
+    document.getElementById('errorBox').style.display = 'block';
+    document.getElementById('errorBox').textContent = '❌ ' + e.message;
+    document.getElementById('progressSection').style.display = 'none';
+    startBtn.disabled = false;
+  }
+}
+
+function resetAll() {
+  fileInput.value = '';
+  fileBadge.style.display = 'none';
+  startBtn.disabled = true;
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('progressSection').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+  setProgress(0, '');
+}
+</script>
+</body>
+</html>
